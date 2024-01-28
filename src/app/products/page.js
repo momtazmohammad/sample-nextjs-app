@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 
 const Products = () => {
   const [resProducts, setResProducts] = useState([]);
-  const router = useRouter();  
-  let _id = 1;
+  const [snack,setSnack]=useState("")
+  const router = useRouter();    
   const getProducts = async () => {
     const response = await fetch(`http://localhost:3000/api/product/list`, {
       method: "GET",
@@ -15,20 +15,24 @@ const Products = () => {
     setResProducts(result.data);
   };
   const newProduct = async () => {
+    const _id=~~(Math.random() * 100000)
     const response = await fetch(`http://localhost:3000/api/product/create`, {
       method: "POST",
       body: JSON.stringify({
         prdid: _id,
         prdname: "fixture " + _id,
-        price: _id * 10000,
+        price: _id * 100,
         remarks: "machine products",
       }),
       headers: {
         withCredentials: true,
       },
-    });
-    _id++;
+    });    
     const data = await response.json();
+    setSnack("New Record is added , please refresh the page to see the new record")
+    setTimeout(() => {
+      setSnack("")
+    }, 5000);
     console.log(data);
   };
   const productDetail=async (id)=>{
@@ -40,6 +44,7 @@ const Products = () => {
   }, []);
   return (
     <div>
+      {snack && <h3>{snack}</h3>}
       <div>
         <button className='btn' style={{ margin: "2px 10px" }} onClick={newProduct}>
           ايجاد محصول جديد
