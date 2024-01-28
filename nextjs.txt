@@ -1,0 +1,353 @@
+Next js build top of react framework
+render in server
+BFF //try to use client component to separate file
+the BFF pattern reduces unnecessary data transfers and optimizes API calls, resulting in improved performance and faster load times.
+Create a dedicated backend layer that acts as an intermediary between the frontend and the backend services.
+
+you can't use state or any hooks in any server component
+"use sever" //always running in server side
+"use client";
+if theres is a code running on client like click event
+
+in developer mode is not act like production
+
+Link & Image & Navigation
+Instead of using <a> , use <Link> from Next.js (Pre-Fetching the page)
+import Link from 'next/link'
+
+Instead of using <img> , use <Image> from Next.js (More options)
+import Image from 'next/image'
+
+Next.js provides useful navigation features (useRouter, notFound …)
+import { useRouter, notFound } from 'next/navigation'
+
+SSR nextjs 12
+SSG nextjs 12
+
+Automatic code splitting
+Built in routing
+Image optimization
+Lazy loading
+SEO optimization
+https://react.dev/learn/start-a-new-react-project
+npx create-next-app@latest
+npx create-next-app myapp
+npm run dev
+
+https://nextjs.org/docs
+https://vercel.com/solutions/nextjs
+https://blog.logrocket.com/how-to-adopt-next-js-into-your-existing-application/
+https://github.com/gopinav/Next-JS-Tutorials/tree/master/hello-world
+
+
+In previous version of Next.js, all the pages should be generated inside of pages directory (Pages Router). For new applications, Next.js team recommends using the App Router.
+In previous version of Next.js, the file name is used for route. /news => news.tsx (or news.jsx)
+In version 13 , create directory and file containing page         /news => news/page.tsx (or page.jsx)
+If Nesting route, /news/latest => news/latest/page.tsx (or page.jsx)
+app
+├── news
+│     ├── latest
+│     │      └── page.tsx (/news/latest)
+│     └── page.tsx (/news)
+
+Layout
+A file that determines the metadata or layout of pages. (layout.tsx or layout.jsx)
+Rendering process (if the route contains its own layout file)
+=> RootLayout — PageLayout — Page
+Rendering process (if the route does not contain its own layout file)
+=> RootLayout — Page
+
+Useful Pages (loading & error & not-found)
+In Next.js, we can show each of pages without setting state or Route. We just need to create a file with name (loading & error & not-found). (Of course, we can set the state likewise how we did in ReactJS, but should declare ‘use client’ for Client Component)
+
+loading.tsx (or loading.jsx)
+This file will be automatically rendered when api call is processing or page is hydrating.
+
+error.tsx (or error.jsx)
+This file will be automatically rendered when error occurred.
+
+not-found.tsx (or not-found.jsx)
+This file will be rendered when the notFound() is returned or access unspecified route.
+
+-------------
+‘user/[id]/page.tsx’
+
+import { notFound } from "next/navigation";
+
+const Id = ({ params: { id } }: { params: { id: number } }) => {
+  id = Number(id);
+
+  if (id < 0 || id > 10 || isNaN(id)) {
+    notFound();
+  }
+  return (
+    <>
+      <h1>Id:{id}</h1>
+    </>
+  );
+};
+
+export default Id;
+----------------
+
+import { notFound } from 'next/navigation';
+// ...
+if (!condition) return notFound();
+### You can make these files for each route (belong to each route), but if you don’t, it will belong to the files that you created in app directory.
+
+Dynamic Params & Static Params
+What if the route contains params such as http://localhost:3000/news/1 or http://localhost:3000/news/2 This is called ‘dynamic params’. How to set route for this case? Use [] in route directory name.
+/news/[id]
+Based on above example,
+
+app
+├── news
+│     ├── [id]
+│     │     └── page.tsx (/news/1 or /news/2)
+
+By the way, how to get params data? It is passed by props. So, we can get the params data by props.params.id (‘id’ is that you named in route directory name).
+
+generateStaticParams
+
+
+API
+fetch / axios
+
+force-cache
+If we send the request for fetching data, the data as response will be cached. This cached data will be remained until manually invalidated. Similar to ‘getStaticProps’ (SSG — Static Site Generation) from Next.js 12. ‘force-cache’ is the default and can be omitted . It can be used for data which is not changed frequently.
+fetch('URL', { cache: 'force-cache' });
+
+no-store
+If we send the request for fetching data, the data as response should be refetched on every request. Similar to `getServerSideProps` (SSR — Server Side Rendering) from Next.js 12. It can be used for data which is changed frequently.
+fetch('URL', { cache: 'no-store' });
+
+fetch requests that use the POST method are also automatically cached. Unless it's inside a Route Handler that uses the POST method, then it will not be cached.
+
+Revalidate
+If we use ‘force-cache’ for request, the data will be cached. What if the response data is changed? Then, we are supposed to rebuild the app and deploy again. To avoid this job, alternatively, we can use ‘Revalidate’ option. This request should be cached with a lifetime of some seconds and revalidate after some seconds. Similar to ‘getStaticProps’ with the ‘revalidate’ option (ISR — Incremental Static Regeneration) from Next.js 12.
+fetch('URL', { next: { revalidate: 30 } });
+// data will be cached for 30 seconds.
+// After 30 seconds, refetch will be implemented in the background.
+// background means, if you hit refresh after 30 seconds,
+// the data would not change, but real data in background is refetched.
+// And if you hit refresh again, new refetched data will be rendered.
+
+---
+app/utils.ts
+import { cache } from 'react'
+export const getItem = cache(async (id: string) => {
+  const item = await db.item.findUnique({ id })
+  return item
+})
+
+app/item/[id]/layout.tsx
+import { getItem } from '@/utils/get-item'
+export const revalidate = 3600 // revalidate the data at most every hour
+export default async function Layout({
+  params: { id },
+}: {
+  params: { id: string }
+}) {
+  const item = await getItem(id)
+  // ...
+}
+
+app/item/[id]/page.tsx
+import { getItem } from '@/utils/get-item'
+export const revalidate = 3600 // revalidate the data at most every hour
+export default async function Page({
+  params: { id },
+}: {
+  params: { id: string }
+}) {
+  const item = await getItem(id)
+  // ...
+}
+-----
+
+api directory and routefile
+All of api in Next.js can be handled in api directory of app directory. Inside of api directory, you can set route name directory. 
+Finally, create route.ts or route.js file for configuration (Set up GET / POST / PUT / DELETE methods).
+
+app
+├── api
+│    ├── news
+│    │    └── route.ts (/api/news)
+GET
+
+Naming the file inside the route folder page.jsx transforms it into a UI route. This means that it will serve as a regular page with UI components. On the other hand, if you name the file as route.js, it becomes an API route. This signifies that it will handle API requests and responses.
+
+It's important to keep in mind that within a single directory, you can have either a UI route or an API route, but not both. This clear separation allows for a clean and organized structure while building your Next.js application.
+
+CSS
+
+async function getData() {
+  const res = await fetch('https://api.example.com/...')
+  // The return value is *not* serialized
+  // You can return Date, Map, Set, etc.
+ 
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error('Failed to fetch data')
+  }
+ 
+  return res.json()
+}
+ 
+ // without any state
+export default async function Page() {
+  const data = await getData()
+   
+  return <main></main>
+}
+
+export async function GET(
+  request: Request,
+  { params }: { params: { slug: string } }
+) {
+  const slug = params.slug // 'a', 'b', or 'c'
+}
+
+import { type NextRequest } from 'next/server'
+ 
+export function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams
+  const query = searchParams.get('query')
+  // query is "hello" for /api/search?query=hello
+}
+
+Request body
+ const body = await request.json()
+
+ export default function Page() {
+  async function createInvoice(formData) {
+    'use server'
+ 
+    const rawFormData = {
+      customerId: formData.get('customerId'),
+      amount: formData.get('amount'),
+      status: formData.get('status'),
+    }
+ 
+    // mutate data
+    // revalidate cache
+  }
+ 
+  return <form action={createInvoice}>...</form>
+}
+
+A Server Action can be defined with the React "use server" directive. You can place the directive at the top of an async function to mark the function as a Server Action, or at the top of a separate file to mark all exports of that file as Server Actions.
+To call a Server Action in a Client Component, create a new file and add the "use server" directive at the top of it. All functions within the file will be marked as Server Actions that can be reused in both Client and Server Components:
+app/actions.js
+'use server'
+ export async function create() {
+  // ...
+}
+app/ui/button.js
+import { create } from '@/app/actions'
+export function Button() {
+  return (
+    // ...
+  )
+}
+
+You can also pass a Server Action to a Client Component as a prop:
+<ClientComponent updateItem={updateItem} />
+app/client-component.jsx
+'use client'
+export default function ClientComponent({ updateItem }) {
+  return <form action={updateItem}>{/* ... */}</form>
+}
+
+The generateStaticParams function can be used in combination with dynamic route segments to statically generate routes at build time instead of on-demand at request time.
+app/blog/[slug]/page.js
+export async function generateStaticParams() {
+  const posts = await fetch('https://.../posts').then((res) => res.json())
+ 
+  return posts.map((post) => ({
+    slug: post.slug,
+  }))
+}
+
+Route	Example URL	params (Catch-all Segments)
+app/shop/[...slug]/page.js	/shop/a	{ slug: ['a'] }
+app/shop/[...slug]/page.js	/shop/a/b	{ slug: ['a', 'b'] }
+app/shop/[...slug]/page.js	/shop/a/b/c	{ slug: ['a', 'b', 'c'] }
+
+Optional Catch-all Segments
+Route	Example URL	params
+app/shop/[[...slug]]/page.js	/shop	{}
+app/shop/[[...slug]]/page.js	/shop/a	{ slug: ['a'] }
+app/shop/[[...slug]]/page.js	/shop/a/b	{ slug: ['a', 'b'] }
+
+When using TypeScript, you can add types for params depending on your configured route segment
+Route	params Type Definition
+app/blog/[slug]/page.js	{ slug: string }
+app/shop/[...slug]/page.js	{ slug: string[] }
+app/shop/[[...slug]]/page.js	{ slug?: string[] }
+app/[categoryId]/[itemId]/page.js	{ categoryId: string, itemId: string }
+
+Route Handlers are cached by default when using the GET method with the Response object.
+
+app/api/search/route.js
+export function GET(request) {
+  const searchParams = request.nextUrl.searchParams
+  const query = searchParams.get('query')
+  // query is "hello" for /api/search?query=hello
+}
+
+-----
+import { createTodoAction } from "@/app/_action";
+export default function TodoForm() {
+  async function action(data: FormData) {
+    "use server";
+
+    const title = data.get("title");
+    if (!title || typeof title !== "string") {
+      return;
+    }
+
+    // call server action
+    await createTodoAction({ title, path: "/" });
+  }
+
+  return (
+    <form
+      action={action}
+      key={Math.random()}
+      className="flex items-center space-x-2 mb-4"
+    >
+      <input
+        type="text"
+        name="title"
+        className="border rounded px-2 py-1 flex-1"
+      />
+      <button className="px-4 py-1 text-white rounded bg-green-500">Add</button>
+    </form>
+  );
+}
+
+If you need to fetch data in a client component, you can call a Route Handler 
+
+Server-side validation and error handling
+We recommend using HTML validation like required and type="email" for basic client-side form validation.
+
+Instead of using React Context (which is not available on the server) or passing data as props, you can use fetch or React's cache function to fetch the same data in the components that need it
+
+/app/login/page.tsx
+import { authenticate } from '@/app/lib/actions'
+const LoginPage = () => {
+  return (
+    <form action={authenticate}>
+      <input type="email" name="email" placeholder="Email" required />
+      <input type="password" name="password" placeholder="Password" required />
+      <button type="submit">Login</button>
+    </form>
+  )
+}
+ 
+export default LoginPage
+
+patch method 
+
+https://nextjs.org/docs
